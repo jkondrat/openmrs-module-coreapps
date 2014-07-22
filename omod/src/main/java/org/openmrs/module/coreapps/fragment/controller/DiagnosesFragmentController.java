@@ -21,11 +21,7 @@ import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 
-import org.openmrs.Concept;
-import org.openmrs.ConceptName;
-import org.openmrs.ConceptSearchResult;
-import org.openmrs.ConceptSource;
-import org.openmrs.Obs;
+import org.openmrs.*;
 import org.openmrs.api.ConceptService;
 import org.openmrs.api.ObsService;
 import org.openmrs.module.appui.UiSessionContext;
@@ -42,11 +38,7 @@ import org.openmrs.ui.framework.fragment.action.FragmentActionResult;
 import org.openmrs.ui.framework.fragment.action.SuccessResult;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 /**
  *
@@ -59,14 +51,21 @@ public class DiagnosesFragmentController {
                                      @SpringBean("emrConceptService") EmrConceptService emrConceptService,
                                      @RequestParam("term") String query,
                                      @RequestParam(value = "start", defaultValue = "0") Integer start,
-                                     @RequestParam(value = "size", defaultValue = "50") Integer size) throws Exception {
+                                     @RequestParam(value = "size", defaultValue = "50") Integer size,
+                                     @SpringBean("conceptService") ConceptService conceptService) throws Exception {
 
         Collection<Concept> diagnosisSets = emrApiProperties.getDiagnosisSets();
         Locale locale = context.getLocale();
 
         List<ConceptSource> sources = emrApiProperties.getConceptSourcesForDiagnosisSearch();
 
-        List<ConceptSearchResult> hits = emrConceptService.conceptSearch(query, locale, null, diagnosisSets, sources, null);
+        LinkedHashSet<ConceptClass> conceptClasses = new LinkedHashSet<ConceptClass>();
+        conceptClasses.add(conceptService.getConceptClassByName("Diagnosis"));
+        conceptClasses.add(conceptService.getConceptClassByName("Finding"));
+        conceptClasses.add(conceptService.getConceptClassByName("Symptom"));
+        conceptClasses.add(conceptService.getConceptClassByName("Symptom/Finding"));
+        
+        List<ConceptSearchResult> hits = emrConceptService.conceptSearch(query, locale, conceptClasses, null, sources, null);
         List<SimpleObject> ret = new ArrayList<SimpleObject>();
         for (ConceptSearchResult hit : hits) {
             ret.add(simplify(hit, ui, locale));
